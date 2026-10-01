@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Кладовая Алтая">
+  <rect width="512" height="512" rx="112" fill="#164d3c"/>
+  <circle cx="256" cy="256" r="174" fill="#fbf5e9"/>
+  <circle cx="256" cy="256" r="48" fill="#dda04b"/>
+  <path d="M256 102c42 28 68 66 68 103-38 1-73-18-89-49-16-31-6-45 21-54Z" fill="#2b7653"/>
+  <path d="M410 256c-28 42-66 68-103 68-1-38 18-73 49-89 31-16 45-6 54 21Z" fill="#2b7653"/>
+  <path d="M256 410c-42-28-68-66-68-103 38-1 73 18 89 49 16 31 6 45-21 54Z" fill="#2b7653"/>
+  <path d="M102 256c28-42 66-68 103-68 1 38-18 73-49 89-31 16-45 6-54-21Z" fill="#2b7653"/>
+  <path d="M256 121v270M121 256h270" stroke="#dda04b" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="22" fill="#fffaf0"/>
+</svg>

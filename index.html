@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Кладовая Алтая — товары и консультация в магазине</title>
+<style>
+:root{--ink:#17382f;--muted:#65746b;--forest:#164d3c;--cream:#fbf5e9;--line:#e5dfd2;--berry:#b33f59;--gold:#e8a43b;font-family:Arial,"Segoe UI",sans-serif;color:var(--ink);background:var(--cream)}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #ea9e46;outline-offset:3px}
+a{color:inherit}
+
+.shell{width:min(1216px,calc(100% - 40px));margin:auto}
+.topbar{background:#113c32;color:#f7eeda}
+.topbar .shell{min-height:43px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.topbar span:last-child{opacity:.8}
+
+.hero{position:relative;overflow:hidden;color:#fff8e8;background:radial-gradient(circle at 84% 17%,#efa750 0 8%,transparent 8.2%),linear-gradient(122deg,#194e3c 10%,#207257 61%,#7f9c58 100%);min-height:425px}
+.hero:before,.hero:after{content:"";position:absolute;pointer-events:none}
+.hero:before{width:720px;height:400px;right:-105px;bottom:-285px;background:#133f35;border-radius:50%;transform:rotate(-15deg);box-shadow:-365px 42px 0 30px #1d5e49,135px 95px 0 15px #4b8250}
+.hero:after{width:250px;height:250px;right:13%;top:15%;border:1px solid #fff8e870;border-radius:50%;box-shadow:0 0 0 32px #ffffff08,0 0 0 65px #ffffff09}
+.hero .shell{position:relative;z-index:1;padding:28px 0 50px}
+.brand{display:flex;align-items:center;gap:11px;font-size:20px;font-weight:800;letter-spacing:.015em}
+.brand-mark{width:37px;height:37px;border-radius:11px 11px 11px 3px;background:#f7d18d;display:grid;place-items:center;color:#205243;font-size:23px;transform:rotate(-8deg)}
+.brand-mark span{transform:rotate(8deg)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(285px,.7fr);gap:45px;align-items:end;padding-top:62px}
+.eyebrow{font-size:12px;letter-spacing:.19em;text-transform:uppercase;font-weight:800;color:#f5ce81}
+.hero h1{font:normal clamp(42px,6vw,76px)/.99 Georgia,"Times New Roman",serif;letter-spacing:-.045em;max-width:750px;margin:17px 0 22px}
+.hero h1 em{font-style:italic;color:#f5ce81}
+.hero-copy{font-size:17px;line-height:1.6;max-width:590px;color:#e9f1e5;margin:0}
+.hero-card{background:#f9f0dc;color:var(--ink);border-radius:24px 24px 24px 7px;padding:27px;box-shadow:0 25px 55px #0b2d2459;position:relative}
+.hero-card:before{content:"✦";font-size:40px;color:var(--berry);line-height:1}
+.hero-card strong{display:block;font:normal 25px/1.16 Georgia,serif;margin:10px 0}
+.hero-card p{font-size:14px;line-height:1.55;margin:0;color:#53675b}
+.city-row{margin-top:21px;display:flex;flex-wrap:wrap;gap:7px}
+.city-row span{font-size:11px;font-weight:800;background:#e9dfc5;border-radius:20px;padding:8px 10px}
+
+main{padding-bottom:60px}
+.intro{display:grid;grid-template-columns:1fr auto;gap:25px;align-items:end;padding:49px 0 23px}
+.intro h2{font:normal clamp(34px,4vw,50px)/1.08 Georgia,serif;letter-spacing:-.04em;margin:8px 0 10px}
+.intro p{color:var(--muted);line-height:1.5;margin:0;max-width:650px}
+.count-tag{border:1px solid #dbcfb6;background:#fffaf0;border-radius:100px;padding:11px 17px;color:#3f604e;font-weight:700;font-size:13px;white-space:nowrap}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--berry);font-weight:900}
+
+.tools{background:#fffdf8;border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:0 10px 35px #4c482515}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:#587365}
+.search-wrap input{width:100%;border:1px solid #d9e2d8;border-radius:13px;background:#f6f7ef;height:54px;padding:0 16px 0 50px;color:var(--ink);font-size:15px}
+.search-wrap input::placeholder{color:#7a8a7f}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.chip{border:1px solid #e0e4d9;background:white;color:#435e4e;border-radius:100px;padding:9px 13px;font-size:13px;font-weight:700;transition:background .2s,transform .2s,border-color .2s}
+.chip:hover{transform:translateY(-2px);border-color:#84a58d}
+.chip[aria-pressed=true]{color:white;background:var(--forest);border-color:var(--forest)}
+.chip small{opacity:.7;margin-left:5px;font-size:11px}
+
+.result-line{display:flex;justify-content:space-between;gap:10px;margin:24px 1px 16px;color:#6a776a;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.card{min-width:0;background:#fffefa;border:1px solid #e7e1d5;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 7px 20px #2c41300d;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-5px);box-shadow:0 16px 32px #2c413024}
+.art{position:relative;height:310px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.art:before,.art:after{content:"";position:absolute;border-radius:50%}
+.art:before{width:230px;height:230px;right:-65px;top:-95px;background:#ffffff38}
+.art:after{width:160px;height:160px;left:-70px;bottom:-100px;border:28px solid #ffffff55}
+.art.has-photo{background:#fffdf9}
+.art.has-photo:before,.art.has-photo:after{display:none}
+.product-photo{display:block;width:100%;height:100%;object-fit:contain;padding:4px}
+.art.has-photo .art-caption{background:#f9f5eae8}
+.art-symbol{font:normal 64px/1 Georgia,serif;color:var(--fg);position:relative;z-index:1;text-shadow:0 7px 22px #113e271a}
+.art-caption{position:absolute;bottom:12px;left:13px;z-index:1;border-radius:50px;background:#ffffffd9;color:#385345;padding:5px 9px;font-size:10px;font-weight:700}
+.body{padding:18px 17px 16px;display:flex;flex-direction:column;flex:1}
+.number{font-size:11px;font-weight:850;letter-spacing:.11em;color:#ae5965;text-transform:uppercase}
+.body h3{font:normal 19px/1.25 Georgia,serif;letter-spacing:-.012em;margin:10px 0 15px;overflow-wrap:anywhere}
+.category{font-size:12px;color:#63806c;margin-top:auto}
+.divider{height:1px;background:#eae9df;margin:15px 0 12px}
+.flag{font-size:11px;line-height:1.45;color:#775c33;background:#fff4dd;border-radius:9px;padding:9px;margin-top:12px}
+.product-intro{font-size:13px;line-height:1.55;color:#53675b;margin:12px 0 0}
+.product-link{display:inline-flex;align-items:center;justify-content:center;margin-top:14px;padding:10px 14px;border-radius:100px;background:var(--forest);color:white;text-decoration:none;font-size:12px;font-weight:850}
+.product-link:hover{background:#23684f}
+.empty{grid-column:1/-1;text-align:center;border:1px dashed #b8c7b5;border-radius:20px;padding:48px;color:#57705e;background:#fffdf8}
+.empty strong{display:block;font:normal 28px Georgia,serif;color:var(--ink);margin-bottom:7px}
+
+.review{margin-top:35px;border:1px solid #e9dfcb;background:#fff9ed;border-radius:17px;padding:0 20px;color:#5d614f}
+.review summary{padding:18px 0;cursor:pointer;font-weight:800;color:#3a5946}
+.review p{font-size:13px;line-height:1.55;max-width:850px;margin:0 0 17px}
+.foot{background:#113c32;color:#e5eddf;padding:32px 0}
+.foot .shell{display:flex;gap:18px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.foot strong{font:normal 24px Georgia,serif}
+.foot p{font-size:12px;line-height:1.5;margin:0;color:#c7d8c9;max-width:630px}
+
+.stores{position:relative;margin-top:-24px;margin-bottom:52px;background:#fffaf0;border:1px solid #e8dcc5;border-radius:25px;padding:27px;box-shadow:0 20px 55px #24463322}
+.stores-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
+.stores h2{font:normal clamp(30px,4vw,44px)/1.08 Georgia,serif;letter-spacing:-.035em;margin:8px 0 0}
+.stores-head p{max-width:380px;color:#617164;line-height:1.5;font-size:14px;margin:0}
+.store-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(350px,1fr);gap:20px;max-width:1060px;margin:0 auto;align-items:start}
+.store-photo{margin:0;background:#fffdf7;border:1px solid #e6d9be;border-radius:20px;overflow:hidden;box-shadow:0 10px 28px #24463319}
+.store-photo.featured{display:grid;grid-template-columns:minmax(0,1fr) 190px;background:#174b3a;border-color:#174b3a}
+.photo-stage{height:255px;display:grid;place-items:center;padding:16px;position:relative;isolation:isolate;background:linear-gradient(135deg,#e3ecda,#e7e5d6)}
+.featured .photo-stage{height:500px;background:radial-gradient(circle at 15% 80%,#c5d9b1 0 12%,transparent 12.2%),linear-gradient(135deg,#e7eddd,#f3e3c3)}
+.photo-stage:before{content:"";position:absolute;inset:15px;border:1px solid #ffffffae;border-radius:13px;pointer-events:none}
+.photo-stage img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;position:relative;z-index:1;border-radius:6px;box-shadow:0 8px 23px #17382f35}
+.abakan-crop{width:min(100%,410px);aspect-ratio:39/50;overflow:hidden;position:relative;z-index:1;border-radius:7px;box-shadow:0 8px 23px #17382f35}
+.featured .photo-stage .abakan-crop img{display:block;width:125%;height:auto;max-width:none;max-height:none;border-radius:0;box-shadow:none;transform:translate(-20%,-10%)}
+.store-photo.secondary .photo-stage{height:335px;padding:12px;overflow:hidden}
+.store-photo.secondary .photo-stage img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:50% 45%;transform:scale(1.24);transform-origin:82% 28%}
+.store-photo figcaption{background:#fffdf7;color:#244d3a;padding:13px 14px;font-weight:800;font-size:13px;text-align:center;border-top:1px solid #eee5d5}
+.store-photo.featured figcaption{border:0;text-align:left;background:#174b3a;color:#f9f4e9;padding:25px 21px;display:flex;flex-direction:column;justify-content:space-between}
+.store-note .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#e9c476}
+.store-note strong{display:block;font:normal 27px/1.08 Georgia,serif;margin-top:13px}
+.store-note p{font-size:13px;line-height:1.5;color:#d7e8d8;margin:0}
+.store-photo.secondary figcaption{font-size:13px}
+@media(max-width:1000px){.store-grid{grid-template-columns:1fr;max-width:720px}
+.store-photo.secondary{width:min(100%,440px);justify-self:center}
+}
+@media(max-width:740px){.stores{margin-top:-12px;padding:19px;margin-bottom:30px}
+.stores-head{display:block}
+.stores-head p{margin-top:12px}
+}
+@media(max-width:620px){.abakan-crop{width:min(100%,300px)}
+.store-photo.featured{grid-template-columns:1fr}
+.featured .photo-stage{height:390px}
+.store-photo.featured figcaption{gap:12px;padding:17px 20px}
+.store-note strong{font-size:24px;margin-top:8px}
+.photo-stage{height:225px}
+}
+@media(max-width:430px){.featured .photo-stage{height:340px}
+}
+@media print{.stores{box-shadow:none;break-inside:avoid}
+.featured .photo-stage{height:350px}
+.photo-stage{height:200px}
+}
+.locations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1060px;margin:18px auto 0}
+.location{background:#f7f4e9;border:1px solid #e7dec9;border-radius:15px;padding:17px 18px}
+.location .city{display:block;font-size:11px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:#ac5d4a;margin-bottom:8px}
+.location address{font-style:normal;font-size:15px;line-height:1.4;font-weight:800;color:#244b39}
+@media(max-width:740px){.locations{grid-template-columns:1fr;max-width:480px}
+.location{padding:14px 17px}
+}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hero-grid{gap:22px}
+}
+@media(max-width:740px){.hero{min-height:0}
+.hero .shell{padding-bottom:35px}
+.hero-grid{grid-template-columns:1fr;padding-top:44px}
+.hero-card{max-width:470px}
+.intro{grid-template-columns:1fr;padding-top:36px}
+.count-tag{justify-self:start}
+.grid{grid-template-columns:1fr}
+}
+@media(max-width:520px){.shell{width:min(100% - 28px,1216px)}
+.topbar span:last-child{display:none}
+.hero h1{font-size:43px}
+.hero-card{padding:21px}
+.grid{gap:11px}
+.art{height:280px}
+.art-symbol{font-size:50px}
+.body{padding:13px}
+.body h3{font-size:16px}
+.chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px}
+.chip{white-space:nowrap}
+.count-tag{font-size:12px}
+.review{padding:0 15px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}
+.card,.chip{transition:none}
+}
+@media print{.topbar,.tools,.review{display:none}
+.hero{min-height:0}
+.hero .shell{padding:20px 0}
+.hero-grid{padding:20px 0}
+.hero-card{display:none}
+.grid{grid-template-columns:repeat(3,1fr)}
+.card{break-inside:avoid}
+.foot{display:none}
+}
+
+</style>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-48.png" type="image/png" sizes="48x48">
+<link rel="shortcut icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" href="assets/icon-192.png" sizes="192x192">
+<link rel="manifest" href="site.webmanifest">
+</head>
+<body>
+<div class="topbar"><div class="shell"><span>Алтайские товары рядом с вами</span><span>Шарыпово · Ачинск · Абакан</span></div></div>
+<header class="hero"><div class="shell"><div class="brand"><span class="brand-mark" aria-hidden="true"><span>✳</span></span> Кладовая Алтая</div><div class="hero-grid"><div><div class="eyebrow">Каталог для знакомства</div><h1>Найдите своё <em>сокровище</em> Алтая</h1><p class="hero-copy">Чаи, травы, продукты и уход — посмотрите подборку онлайн, а в магазине вам помогут разобраться в ассортименте и выбрать подходящий товар.</p></div><div class="hero-card"><strong>Совет рядом, когда он нужен</strong><p>Уточните наличие в ближайшей точке и поговорите с консультантом перед покупкой.</p><div class="city-row"><span>Шарыпово</span><span>Ачинск</span><span>Абакан</span></div></div></div></div></header>
+<main class="shell"><section class="stores" aria-labelledby="stores-title"><div class="stores-head"><div><span class="section-label">Наши магазины</span><h2 id="stores-title">Загляните к нам</h2></div><p>Посмотрите, как выглядят входы в магазины. Внутри вам помогут сориентироваться в ассортименте.</p></div><div class="store-grid"><figure class="store-photo featured"><div class="photo-stage"><div class="abakan-crop"><img src="assets/abakan-store-1.webp" alt="Вход в магазин «Кладовая Алтая» в Абакане, вывеска и лестница" loading="eager" decoding="async"></div></div><figcaption class="store-note"><div><span class="kicker">Абакан</span><strong>Знакомый вход, где вам помогут с выбором</strong></div><p>Загляните за дарами Алтая: поможем спокойно выбрать чай, подарок или уход для себя.</p></figcaption></figure><figure class="store-photo secondary"><div class="photo-stage"><img src="assets/store-entrance-2.webp" alt="Вход в магазин «Кладовая Алтая» в Ачинске, синяя вывеска и лестница" loading="eager" decoding="async"></div><figcaption>Магазин в Ачинске</figcaption></figure></div><div class="locations" aria-label="Адреса магазинов"><div class="location"><span class="city">Абакан</span><address>ул. Пушкина, 58</address></div><div class="location"><span class="city">Ачинск</span><address>3-й микрорайон, 9</address></div><div class="location"><span class="city">Шарыпово</span><address>мкр. Пионерный, 2А</address></div></div></section><section class="intro" aria-labelledby="catalog-title"><div><span class="section-label">Товары</span><h2 id="catalog-title">Знакомьтесь с ассортиментом</h2><p>Первая подборка по популярным позициям. Найдите товар по названию или откройте интересующую категорию.</p></div><span class="count-tag">92 товара в подборке</span></section>
+<section class="tools" aria-label="Поиск по каталогу"><div class="search-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="2"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="search" type="search" placeholder="Например, иван-чай или №24" aria-label="Поиск по названию или номеру"></div><div class="chips" id="chips" aria-label="Категории"></div></section>
+<div class="result-line"><span id="count" aria-live="polite"></span><span>Цены уточняются в магазине</span></div><section class="grid" id="grid" aria-label="Товары"></section>
+<details class="review"><summary>О подготовке этого каталога</summary><p>Это макет для проверки: названия перенесены с фотографий отчёта за 29.08–28.09.2026. Стилизованные изображения созданы с помощью ИИ: мелкий текст на упаковке может отличаться от оригинала. Перед публикацией нужно сверить упаковки и состав, подтвердить права на найденные фотографии и проверить наличие в каждой точке. Пакеты №1, №3, №11 и №88 исключены. Возможные дубли и сокращённые названия отмечены в карточках.</p></details></main>
+<footer class="foot"><div class="shell"><strong>Кладовая Алтая</strong><p>Шарыпово · Ачинск · Абакан<br>Наличие товара и консультацию уточняйте непосредственно в магазине.</p></div></footer>
+<script>
+const products=[{"number": 4, "title": "Крем косметический натуральный «Сустарад», 150 мл", "category": "Косметика и уход", "image": "product-photo-styles/product-4.webp", "note": ""}, {"number": 8, "title": "«Репростанол», 20 саше-пакетов по 5 г", "category": "Экстракты и БАД", "image": "product-photo-styles/product-8.webp", "note": ""}, {"number": 9, "title": "Фиточай «Алтайский родник» Данилы Травника, 150 г", "category": "Чай и кедрокофе", "image": "product-photo-styles/product-9.webp", "details": {"url": "product-altaiskii-rodnik.html", "intro": "Травяной сбор с боярышником, шиповником, чагой и гинкго билоба для поддержки сердца, сосудов и нормального кровообращения."}, "note": "Уточнить производителя, упаковку и точное название"}, {"number": 10, "title": "A-Flumon, 30 таблеток по 800 мг", "category": "Экстракты и БАД", "image": "product-photo-styles/product-10.webp", "details": {"url": "product-a-flumon.html", "intro": "Растительный комплекс для поддержки иммунной защиты в период инфекционных и простудных процессов."}, "note": ""}, {"number": 13, "title": "Экстракт пищевой густой «Лопух», 110 г", "category": "Экстракты и БАД", "image": "product-photo-styles/product-13.webp", "details": {"url": "product-ekstrakt-lopuha.html", "intro": "Концентрированный экстракт свежего майского корня лопуха для комплексной поддержки организма."}, "note": ""}, {"number": 15, "title": "Экстракт корня лопуха «Вистерра», 126 капсул", "category": "Экстракты и БАД", "image": "product-photo-styles/product-15.webp", "details": {"url": "product-lopuh-visterra.html", "intro": "Концентрированный экстракт свежего корня лопуха для поддержки обмена веществ, печени, почек и пищеварения."}, "note": ""}, {"number": 17, "title": "«Сустарад Картемия», 30 растительных капсул по 500 мг", "category": "Экстракты и БАД", "image": "product-photo-styles/product-17.webp", "details": {"url": "product-sustarad-kartemiya.html", "intro": "Нативный комплекс из 25 компонентов для поддержки хрящевой ткани, суставной жидкости и подвижности."}, "note": ""}, {"number": 18, "title": "Sustal («Сусталь»), комплекс для суставов, 10 капсул в среде-активаторе", "category": "Экстракты и БАД", "image": "product-photo-styles/product-18.webp", "details": {"url": "product-sustal.html", "intro": "Капсулы в биогенном растворе-активаторе для комплексной поддержки хряща, суставной жидкости и подвижности."}, "note": ""}, {"number": 19, "title": "Зверобой, трава, «Дары природы» / «Лекра-Сэт», 50 г", "category": "Травы и сборы", "image": "product-photo-styles/product-19.webp", "note": ""}, {"number": 31, "title": "Крем «Суставелл» (SustaWELL) с мумие, 150 мл", "category": "Косметика и уход", "image": "product-photo-styles/product-31.webp", "details": {"url": "product-sustawell.html", "intro": "Крем с мумие для ежедневного ухода за суставами, связками и мышцами."}, "note": ""}, {"number": 36, "title": "Прокладки женские гигиенические «Малавит Сила трав», 10 шт.", "category": "Косметика и уход", "image": "product-photo-styles/product-36.webp", "details": {"url": "product-malavit-sila-trav.html", "intro": "Ультратонкие женские прокладки с мягким верхним слоем и гигиеническим средством «Малавит»."}, "note": ""}, {"number": 40, "title": "Фитокомплекс «Кора осины», 60 капсул по 450 мг", "category": "Экстракты и БАД", "image": "product-photo-styles/product-40.webp", "details": {"url": "product-kora-osiny.html", "intro": "Натуральный фитокомплекс с концентрированным экстрактом коры осины для комплексной поддержки организма."}, "note": ""}, {"number": 43, "title": "Бальзам «Благодать» витаминный безалкогольный", "category": "Бальзамы и сиропы", "image": "product-photo-styles/product-43.webp", "details": {"url": "product-blagodat-vitaminnyi.html", "intro": "Безалкогольный бальзам с ягодами, травами и мёдом для витаминной поддержки, тонуса и иммунитета."}, "note": ""}, {"number": 44, "title": "«Бобродок» с жиром барсука, Сашера-Мед, 50 мл", "category": "Экстракты и БАД", "image": "product-photo-styles/product-44.webp", "details": {"url": "product-bobrodok-barsuchii-zhir.html", "intro": "Детский натуральный смузи-концентрат-сироп с жиром барсука для поддержки дыхательной системы и иммунитета."}, "note": ""}, {"number": 45, "title": "Капли для глаз «Секрет бобра Актив», 10 мл", "category": "Другие товары", "image": "product-photo-styles/product-45.webp", "note": ""}, {"number": 52, "title": "Пантовые орешки Pantomax, 50 драже", "category": "Мёд и сладости", "image": "product-photo-styles/product-52.webp", "note": ""}, {"number": 53, "title": "Зубная паста AltaiBio «Кедр-Пихта», 75 мл / 100 г", "category": "Косметика и уход", "image": "product-photo-styles/product-53.webp", "note": ""}, {"number": 56, "title": "Свечи «Проктомаг при геморрое», 7 шт.", "category": "Другие товары", "image": "product-photo-styles/product-56.webp", "details": {"url": "product-proktomag.html", "intro": "Ректальные растительные суппозитории для местного ухода при проявлениях геморроя."}, "note": ""}, {"number": 57, "title": "Масло льняное Organic Life «Специалист», 100 мл", "category": "Масла", "image": "product-photo-styles/product-57.webp", "details": {"url": "product-lnyanoe-maslo.html", "intro": "Нерафинированное льняное масло первого холодного отжима — природный источник омега-3 и ненасыщенных жирных кислот."}, "note": ""}, {"number": 63, "title": "«Сустамаг», 30 капсул по 500 мг", "category": "Экстракты и БАД", "image": "product-photo-styles/product-63.webp", "details": {"url": "product-sustamag.html", "intro": "Натуральный двухкомпонентный комплекс для поддержки хрящевой ткани, связок и подвижности суставов."}, "note": ""}, {"number": 64, "title": "Масло чёрного тмина Organic Life «Специалист», 100 мл", "category": "Масла", "image": "product-photo-styles/product-64.webp", "note": ""}, {"number": 71, "title": "Капли для глаз «Органелло Мастер-Ген», 10 мл", "category": "Другие товары", "image": "product-photo-styles/product-71.webp", "details": {"url": "product-master-gen.html", "intro": "Органелло-капли с растительными концентратами, витаминами, карнозином и таурином для ухода за глазами."}, "note": ""}, {"number": 73, "title": "Экстракт восковой моли «Алтайский Старожил», 100 мл", "category": "Экстракты и БАД", "image": "product-photo-styles/product-73.webp", "details": {"url": "product-voskovaya-mol.html", "intro": "Природный экстракт личинок восковой моли для комплексной поддержки организма."}, "note": ""}, {"number": 74, "title": "Лапчатка белая «Полезные травы», 60 капсул", "category": "Экстракты и БАД", "image": "product-photo-styles/product-74.webp", "details": {"url": "product-lapchatka-belaya.html", "intro": "Концентрированный экстракт корня лапчатки белой для поддержки щитовидной железы и эндокринной системы."}, "note": ""}, {"number": 75, "title": "Зубная паста AltaiBio «Мумиё-Зверобой», 75 мл / 100 г", "category": "Косметика и уход", "image": "product-photo-styles/product-75.webp", "note": ""}, {"number": 76, "title": "Крем пантовый «Добродея» в мицеллярной форме, 100 мл", "category": "Косметика и уход", "image": "product-photo-styles/product-76.webp", "details": {"url": "product-dobrodeya-pantovyi.html", "intro": "Органический мицеллярный крем с пантами марала, карнозином и лютеином для увлажнения, тонуса и защиты кожи."}, "note": ""}, {"number": 77, "title": "Зубная паста AltaiBio «Облепиха-Прополис», 75 мл", "category": "Косметика и уход", "image": "product-photo-styles/product-77.webp", "note": ""}, {"number": 78, "title": "Масло облепиховое «Специалист Premium», 100 мл", "category": "Масла", "image": "product-photo-styles/product-78.webp", "details": {"url": "product-oblepihovoe-maslo.html", "intro": "Натуральное облепиховое масло из алтайских ягод — источник каротиноидов, витамина E и жирных кислот."}, "note": ""}, {"number": 82, "title": "Зубная паста AltaiBio «Ромашка-Шалфей», 75 мл / 100 г", "category": "Косметика и уход", "image": "product-photo-styles/product-82.webp", "note": ""}, {"number": 85, "title": "Зубная паста AltaiBio «Липа-Календула», 75 мл / 100 г", "category": "Косметика и уход", "image": "product-photo-styles/product-85.webp", "note": ""}, {"number": 86, "title": "«Сустарад Картемия», 30 растительных капсул по 500 мг", "category": "Экстракты и БАД", "image": "product-photo-styles/product-86.webp", "details": {"url": "product-sustarad-kartemiya.html", "intro": "Нативный комплекс из 25 компонентов для поддержки хрящевой ткани, суставной жидкости и подвижности."}, "note": ""}, {"number": 93, "title": "Сироп «Сосновый мёд. Дыхание», БАД, 250 мл", "category": "Бальзамы и сиропы", "image": "product-photo-styles/product-93.webp", "details": {"url": "product-sosnovyi-med-dyhanie.html", "intro": "Сироп на сосновых почках и алтайских травах для поддержки дыхательных путей и комфортного отхождения мокроты."}, "note": ""}, {"number": 94, "title": "Бальзам «Горная Сибирь» Premium пантовый, 250 мл", "category": "Бальзамы и сиропы", "image": "product-photo-styles/product-94.webp", "details": {"url": "product-gornaya-sibir-pantovyi.html", "intro": "Пантовый бальзам с алтайскими травами и ягодами для тонуса, энергии и восстановления организма."}, "note": ""}, {"number": 96, "title": "Vita WOMAN 45+, 105 капсул", "category": "Экстракты и БАД", "image": "product-photo-styles/product-96.webp", "details": {"url": "product-vita-woman-45.html", "intro": "Метаболический растительный комплекс для женщин старше 45 лет — поддержка гормонального и эмоционального баланса."}, "note": ""}, {"number": 2, "title": "Леденцы, 60 шт.", "category": "Мёд и сладости", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 5, "title": "Сера, 5 г", "category": "Другие товары", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 6, "title": "Кисель, стик", "category": "Напитки", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 7, "title": "Леденцы с клюквой, мёдом и календулой без сахара «Родник здоровья», 10 шт. по 3,2 г", "category": "Мёд и сладости", "note": ""}, {"number": 12, "title": "Кисель сухой витаминизированный «Сладкая ягодка», облепиховый, 10 шт. по 20 г", "category": "Напитки", "note": ""}, {"number": 14, "title": "Мёд с мумиё, 300 г", "category": "Мёд и сладости", "note": ""}, {"number": 16, "title": "Леденцы «Облепиха и прополис»", "category": "Мёд и сладости", "note": "Возможный дубль позиции №70 — сверить по упаковке"}, {"number": 20, "title": "Чага, 100 г", "category": "Травы и сборы", "note": ""}, {"number": 21, "title": "Мумиё, 40 г", "category": "Экстракты и БАД", "note": ""}, {"number": 22, "title": "Иван-чай, 1 шт.", "category": "Чай и кедрокофе", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 23, "title": "Леденцы", "category": "Мёд и сладости", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 24, "title": "Пилюли «Соновит»", "category": "Экстракты и БАД", "note": ""}, {"number": 25, "title": "Чай «При аденоме простаты», 20 фильтр-пакетов", "category": "Чай и кедрокофе", "note": ""}, {"number": 26, "title": "Кедрокофе «Вегетарианский» с растительными сливками, SIBERECO, 25 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 27, "title": "Гранулы «Лопух»", "category": "Экстракты и БАД", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 28, "title": "Кедрокофе «Тропический», порционный, SIBERECO, 25 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 30, "title": "Омик (д. т. + с. т.)", "category": "Экстракты и БАД", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 32, "title": "Мёд с огнёвкой, 300 г", "category": "Мёд и сладости", "note": ""}, {"number": 33, "title": "Фитосвечи, 10 шт.", "category": "Другие товары", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 34, "title": "Кедрокофе с чагой, 25 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 37, "title": "Леденцы «Зверобой и мумиё»", "category": "Мёд и сладости", "note": ""}, {"number": 38, "title": "Крем «Суставел», 100 мл", "category": "Косметика и уход", "note": ""}, {"number": 39, "title": "Чай «Вкусный для бодрости», 20 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 41, "title": "Одуванчик, корень, 50 г", "category": "Травы и сборы", "note": ""}, {"number": 42, "title": "Леденцы без сахара с облепиховым маслом и витамином C", "category": "Мёд и сладости", "note": ""}, {"number": 46, "title": "Экстракт восковой моли", "category": "Экстракты и БАД", "note": "Возможный дубль позиции №73 — сверить по упаковке"}, {"number": 47, "title": "Бобровая струя, 90 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 48, "title": "Горячий шоколад, 25 г", "category": "Напитки", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 49, "title": "Лопух большой, корень, 50 г", "category": "Травы и сборы", "note": ""}, {"number": 51, "title": "«Непробиваемые для нервов», 48 г", "category": "Экстракты и БАД", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 54, "title": "Сбор «Желудочно-кишечные заболевания», 180 г", "category": "Травы и сборы", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 55, "title": "Чай «Сороканедужный женский»", "category": "Чай и кедрокофе", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 58, "title": "«Остео+», 108 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 59, "title": "Саган-дайля", "category": "Травы и сборы", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 60, "title": "«Визион комплекс», 60 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 61, "title": "Исландский мох, 60 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 62, "title": "Сбор «Противоопухолевый», 150 г", "category": "Травы и сборы", "note": ""}, {"number": 66, "title": "«Огнёвка», 100 мл", "category": "Экстракты и БАД", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 67, "title": "«Артишок», 90 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 68, "title": "Крем «Флебовед»", "category": "Косметика и уход", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 69, "title": "Кедрокофе «Горячий шоколад», порционный, SIBERECO, 25 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 70, "title": "Леденцы «Облепиха + прополис»", "category": "Мёд и сладости", "note": "Возможный дубль позиции №16 — сверить по упаковке"}, {"number": 72, "title": "Кедрокофе «Антиоксидантный», порционный, SIBERECO, 1 шт.", "category": "Чай и кедрокофе", "note": ""}, {"number": 79, "title": "«Нозилак», 10 мл", "category": "Другие товары", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 80, "title": "Репешок", "category": "Травы и сборы", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 81, "title": "Сбор «При болезнях в суставах»", "category": "Травы и сборы", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 83, "title": "Сабельник, корень, 100 г", "category": "Травы и сборы", "note": ""}, {"number": 84, "title": "Кедрокофе «Йоговский», порционный, SIBERECO, 25 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 87, "title": "Чагочай «Антиоксидантный», порционный, СибирьЭко, 1 пакет 2 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 89, "title": "Одуванчик, 60 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 90, "title": "Фиточай «Алтайский родник», 150 г", "category": "Чай и кедрокофе", "note": ""}, {"number": 91, "title": "«Капсулы молодости. Зрение», 108 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 92, "title": "Пижма, трава, 50 г", "category": "Травы и сборы", "note": ""}, {"number": 95, "title": "Чай «Простатитный»", "category": "Чай и кедрокофе", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 97, "title": "«Менопауза», 60 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 98, "title": "«Артрокомплекс», 90 капсул", "category": "Экстракты и БАД", "note": ""}, {"number": 99, "title": "«Надежда Балансформула»", "category": "Экстракты и БАД", "note": "Уточнить производителя, упаковку и точное название"}, {"number": 100, "title": "Сироп исландского мха", "category": "Бальзамы и сиропы", "note": "Уточнить производителя, упаковку и точное название"}];
+const styles={"Чай и кедрокофе":{bg:"#d4e6ae",fg:"#245842",symbol:"❦"},"Травы и сборы":{bg:"#c9e3cd",fg:"#24684b",symbol:"✿"},"Мёд и сладости":{bg:"#f8d8a0",fg:"#a25033",symbol:"✦"},"Косметика и уход":{bg:"#efd3d5",fg:"#9a425c",symbol:"◈"},"Экстракты и БАД":{bg:"#d7d5ec",fg:"#5c4f8d",symbol:"✧"},"Напитки":{bg:"#f2cbb6",fg:"#a24842",symbol:"☼"},"Масла":{bg:"#e8e1ac",fg:"#69692c",symbol:"❋"},"Бальзамы и сиропы":{bg:"#eec7ba",fg:"#8a453a",symbol:"❧"},"Другие товары":{bg:"#e1e8e3",fg:"#557064",symbol:"◇"}};
+const search=document.getElementById("search"),chips=document.getElementById("chips"),grid=document.getElementById("grid"),count=document.getElementById("count");let active="";
+const categories=[...new Set(products.map(p=>p.category))].sort((a,b)=>a.localeCompare(b,"ru"));
+function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node}
+function makeChip(label,value,total){const button=element("button","chip",label);button.type="button";button.setAttribute("aria-pressed",String(active===value));if(total!==undefined)button.append(element("small","",String(total)));button.addEventListener("click",()=>{active=value;updateChips();render()});return button}
+function updateChips(){chips.replaceChildren(makeChip("Все товары","",products.length));for(const c of categories)chips.append(makeChip(c,c,products.filter(p=>p.category===c).length))}
+function card(p){
+  const item=element("article","card"),tone=styles[p.category]||styles["Другие товары"],art=element("div","art");
+  art.style.setProperty("--bg",tone.bg);art.style.setProperty("--fg",tone.fg);
+  if(p.image){
+    art.classList.add("has-photo");
+    const photo=element("img","product-photo");photo.src=p.image;photo.alt=`Изображение товара: ${p.title}`;photo.loading="lazy";photo.decoding="async";
+    art.append(photo,element("span","art-caption","Фото товара"));
+  }else{
+    art.append(element("span","art-symbol",tone.symbol),element("span","art-caption","Фото товара готовим"));
+    art.setAttribute("aria-label","Иллюстрация категории, фотография товара ещё не добавлена");
+  }
+  const body=element("div","body");
+  body.append(element("span","number",`Товар №${p.number}`),element("h3","",p.title),element("span","category",p.category));
+  if(p.details)body.append(element("p","product-intro",p.details.intro));
+  body.append(element("div","divider"));
+  if(p.details)body.append(Object.assign(element("a","product-link","Подробнее о товаре"),{href:p.details.url}));
+  if(p.note)body.append(element("div","flag",p.note));item.append(art,body);return item;
+}
+function render(){const q=search.value.trim().toLocaleLowerCase("ru");const selected=products.filter(p=>(!active||p.category===active)&&(!q||p.title.toLocaleLowerCase("ru").includes(q)||String(p.number)===q||`№${p.number}`===q));count.textContent=`Показано ${selected.length} из ${products.length}`;grid.replaceChildren();if(!selected.length){const empty=element("div","empty");empty.append(element("strong","","Ничего не нашли"),document.createTextNode("Попробуйте другое название или выберите все категории."));grid.append(empty);return}const fragment=document.createDocumentFragment();for(const p of selected)fragment.append(card(p));grid.append(fragment)}
+search.addEventListener("input",render);updateChips();render();
+</script>
+</body></html>
+
+
+
+
+
+
+
+
+
+
+
+
+

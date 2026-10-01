@@ -1,0 +1,14 @@
+{
+  "name": "Кладовая Алтая",
+  "short_name": "Кладовая Алтая",
+  "description": "Каталог алтайских товаров и адреса магазинов",
+  "lang": "ru",
+  "start_url": "./kladovaya-altaya-product-cards-draft.html",
+  "display": "standalone",
+  "background_color": "#fbf5e9",
+  "theme_color": "#164d3c",
+  "icons": [
+    {"src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
