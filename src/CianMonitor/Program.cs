@@ -10,6 +10,13 @@ var dataPath = Path.Combine(root, "data", "state.json");
 var sitePath = Path.Combine(root, "cian-monitor");
 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true, WriteIndented = true };
 var state = JsonSerializer.Deserialize<State>(File.ReadAllText(dataPath), options) ?? new State();
+var archivePath = Path.Combine(sitePath, "archive.json");
+var archive = File.Exists(archivePath) ? JsonSerializer.Deserialize<ManualArchive>(File.ReadAllText(archivePath), options) ?? new ManualArchive() : new ManualArchive();
+if (args.Contains("--export-only"))
+{
+    WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values, archive.Listings);
+    return 0;
+}
 var checkedAt = DateTimeOffset.UtcNow.ToString("O");
 ScanStatus status;
 try
@@ -75,7 +82,7 @@ foreach (var item in state.Listings.Values)
 if (status.Ok) File.WriteAllText(dataPath, JsonSerializer.Serialize(state, options));
 File.WriteAllText(Path.Combine(sitePath, "listings.json"), JsonSerializer.Serialize(state.Listings.Values.OrderByDescending(x => x.FirstSeen), options));
 File.WriteAllText(Path.Combine(sitePath, "status.json"), JsonSerializer.Serialize(status, options));
-WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values);
+WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values, archive.Listings);
 return status.Ok ? 0 : 1;
 
 static async Task<ScanResult> ScanAsync(string agentId)
@@ -178,7 +185,7 @@ static long? GetLong(JsonElement item, string key) => item.ValueKind == JsonValu
 static int? GetInt(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.TryGetInt32(out var number) ? number : null;
 static double? GetDouble(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.TryGetDouble(out var number) ? number : null;
 
-static void WriteExcel(string path, IEnumerable<Listing> listings)
+static void WriteExcel(string path, IEnumerable<Listing> listings, IEnumerable<ManualListing> manualListings)
 {
     using var workbook = new XLWorkbook();
     var sheet = workbook.Worksheets.Add("Объявления");
@@ -218,8 +225,10 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
     sheet.SheetView.FreezeRows(1);
     sheet.Row(1).Style.Font.Bold = true;
     sheet.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
-    sheet.Columns(1, headers.Length).AdjustToContents();
-    foreach (var c in new[] { 2, 4, 14, 24 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
+    sheet.Columns(1, headers.Length).Width = 18;
+    sheet.Column(2).Width = 48;
+    sheet.Column(4).Width = 42;
+    sheet.Column(24).Width = 55;
     var history = workbook.Worksheets.Add("История цен");
     string[] historyHeaders = ["ID", "Объявление", "Дата наблюдения", "Цена, ₽", "Ссылка"];
     for (var c = 0; c < historyHeaders.Length; c++) history.Cell(1, c + 1).Value = historyHeaders[c];
@@ -238,9 +247,122 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
     history.SheetView.FreezeRows(1);
     history.Row(1).Style.Font.Bold = true;
     history.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
-    history.Columns(1, historyHeaders.Length).AdjustToContents();
-    if (history.Column(2).Width > 55) history.Column(2).Width = 55;
+    history.Columns(1, historyHeaders.Length).Width = 19;
+    history.Column(2).Width = 48;
+    history.Column(5).Width = 55;
+    var manual = manualListings.ToList();
+    var old = workbook.Worksheets.Add("Старый архив");
+    old.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — из заметок пользователя, не сверены с Цианом. Исчезновение объявления не подтверждает продажу.";
+    old.Range(1, 1, 1, 21).Merge();
+    old.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF0D6");
+    old.Cell(1, 1).Style.Font.Bold = true;
+    string[] oldHeaders = ["ID заметки", "Адрес", "Тип", "Площадь, м²", "Первая дата в заметках", "Первая цена, ₽", "Последняя цена, ₽", "Статус из заметок", "Дата статуса", "Дней по заметкам", "Этаж", "Тип дома", "Год постройки", "Кухня, м²", "Потолки, м", "Балкон", "Газ", "Лифт", "Метро / время", "Покупка, ₽", "Ремонт, ₽"];
+    for (var c = 0; c < oldHeaders.Length; c++) old.Cell(2, c + 1).Value = oldHeaders[c];
+    var oldRow = 3;
+    foreach (var x in manual)
+    {
+        old.Cell(oldRow, 1).Value = x.Id;
+        old.Cell(oldRow, 2).Value = x.Address;
+        old.Cell(oldRow, 3).Value = x.Kind;
+        if (x.AreaM2 is double area) old.Cell(oldRow, 4).Value = area;
+        if (DateTime.TryParse(x.FirstSeen, out var firstDate)) { old.Cell(oldRow, 5).Value = firstDate; old.Cell(oldRow, 5).Style.DateFormat.Format = "dd.mm.yyyy"; }
+        if (x.Prices.FirstOrDefault() is { } first) old.Cell(oldRow, 6).Value = first.Rub;
+        if (x.Prices.LastOrDefault() is { } last) old.Cell(oldRow, 7).Value = last.Rub;
+        old.Cell(oldRow, 8).Value = x.Status;
+        if (DateTime.TryParse(x.StatusDate, out var statusDate)) { old.Cell(oldRow, 9).Value = statusDate; old.Cell(oldRow, 9).Style.DateFormat.Format = "dd.mm.yyyy"; }
+        if (x.ReportedDays is int days) old.Cell(oldRow, 10).Value = days;
+        old.Cell(oldRow, 11).Value = x.Floor;
+        old.Cell(oldRow, 12).Value = x.BuildingType;
+        if (x.BuiltYear is int year) old.Cell(oldRow, 13).Value = year;
+        if (x.KitchenAreaM2 is double kitchen) old.Cell(oldRow, 14).Value = kitchen;
+        if (x.CeilingHeightM is double ceiling) old.Cell(oldRow, 15).Value = ceiling;
+        old.Cell(oldRow, 16).Value = x.Balcony;
+        old.Cell(oldRow, 17).Value = x.Gas;
+        old.Cell(oldRow, 18).Value = x.Elevator;
+        old.Cell(oldRow, 19).Value = $"{x.Metro} {x.MetroTime}".Trim();
+        if (x.PurchasePriceRub is long purchase) old.Cell(oldRow, 20).Value = purchase;
+        if (x.RenovationCostRub is long renovation) old.Cell(oldRow, 21).Value = renovation;
+        oldRow++;
+    }
+    old.Range(2, 1, Math.Max(2, oldRow - 1), oldHeaders.Length).SetAutoFilter();
+    old.SheetView.FreezeRows(2);
+    old.Row(2).Style.Font.Bold = true;
+    old.Row(2).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFE6C0");
+    old.Columns(1, oldHeaders.Length).Width = 19;
+    old.Column(2).Width = 42;
+    old.Column(8).Width = 44;
+    old.Column(19).Width = 30;
+
+    var oldHistory = workbook.Worksheets.Add("Цены старого архива");
+    oldHistory.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — цены и события со слов пользователя, даты изменения могут быть неизвестны.";
+    oldHistory.Range(1, 1, 1, 6).Merge();
+    oldHistory.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF0D6");
+    oldHistory.Cell(1, 1).Style.Font.Bold = true;
+    string[] oldPriceHeaders = ["ID заметки", "Адрес", "Дата", "Цена, ₽", "Тип записи", "Примечание"];
+    for (var c = 0; c < oldPriceHeaders.Length; c++) oldHistory.Cell(2, c + 1).Value = oldPriceHeaders[c];
+    var oldPriceRow = 3;
+    foreach (var x in manual)
+    {
+        foreach (var point in x.Prices)
+        {
+            oldHistory.Cell(oldPriceRow, 1).Value = x.Id;
+            oldHistory.Cell(oldPriceRow, 2).Value = x.Address;
+            if (DateTime.TryParse(point.Date, out var priceDate)) { oldHistory.Cell(oldPriceRow, 3).Value = priceDate; oldHistory.Cell(oldPriceRow, 3).Style.DateFormat.Format = "dd.mm.yyyy"; }
+            oldHistory.Cell(oldPriceRow, 4).Value = point.Rub;
+            oldHistory.Cell(oldPriceRow, 5).Value = "Цена из заметок";
+            oldHistory.Cell(oldPriceRow, 6).Value = point.Note;
+            oldPriceRow++;
+        }
+        foreach (var eventText in x.Events)
+        {
+            oldHistory.Cell(oldPriceRow, 1).Value = x.Id;
+            oldHistory.Cell(oldPriceRow, 2).Value = x.Address;
+            oldHistory.Cell(oldPriceRow, 5).Value = "Событие из заметок";
+            oldHistory.Cell(oldPriceRow, 6).Value = eventText;
+            oldPriceRow++;
+        }
+    }
+    oldHistory.Range(2, 1, Math.Max(2, oldPriceRow - 1), oldPriceHeaders.Length).SetAutoFilter();
+    oldHistory.SheetView.FreezeRows(2);
+    oldHistory.Row(2).Style.Font.Bold = true;
+    oldHistory.Row(2).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFE6C0");
+    oldHistory.Columns(1, oldPriceHeaders.Length).Width = 19;
+    oldHistory.Column(2).Width = 42;
+    oldHistory.Column(6).Width = 70;
     workbook.SaveAs(path);
+}
+
+public sealed class ManualArchive { public List<ManualListing> Listings { get; set; } = []; }
+public sealed class ManualListing
+{
+    public string Id { get; set; } = "";
+    public string Address { get; set; } = "";
+    public string Kind { get; set; } = "";
+    public double? AreaM2 { get; set; }
+    public string FirstSeen { get; set; } = "";
+    public string Status { get; set; } = "";
+    public string StatusDate { get; set; } = "";
+    public int? ReportedDays { get; set; }
+    public string Floor { get; set; } = "";
+    public string BuildingType { get; set; } = "";
+    public int? BuiltYear { get; set; }
+    public double? KitchenAreaM2 { get; set; }
+    public double? CeilingHeightM { get; set; }
+    public string Balcony { get; set; } = "";
+    public string Gas { get; set; } = "";
+    public string Elevator { get; set; } = "";
+    public string Metro { get; set; } = "";
+    public string MetroTime { get; set; } = "";
+    public long? PurchasePriceRub { get; set; }
+    public long? RenovationCostRub { get; set; }
+    public List<ManualPrice> Prices { get; set; } = [];
+    public List<string> Events { get; set; } = [];
+}
+public sealed class ManualPrice
+{
+    public string? Date { get; set; }
+    public long Rub { get; set; }
+    public string Note { get; set; } = "";
 }
 
 public sealed class State
