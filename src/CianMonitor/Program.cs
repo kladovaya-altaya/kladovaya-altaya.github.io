@@ -25,6 +25,10 @@ try
         item.LastSeen = checkedAt;
         item.Status = "В профиле";
         item.PriceHistory = old?.PriceHistory ?? [];
+        if (string.IsNullOrWhiteSpace(item.PublishedAt)) item.PublishedAt = old?.PublishedAt ?? "";
+        if (string.IsNullOrWhiteSpace(item.MetroTransport)) item.MetroTransport = old?.MetroTransport ?? "";
+        item.KitchenAreaM2 ??= old?.KitchenAreaM2;
+        if (string.IsNullOrWhiteSpace(item.BalconyLoggia)) item.BalconyLoggia = old?.BalconyLoggia ?? "";
         item.HouseFloors ??= old?.HouseFloors;
         item.BuiltYear ??= old?.BuiltYear;
         if (string.IsNullOrWhiteSpace(item.BuildingType)) item.BuildingType = old?.BuildingType ?? "";
@@ -50,7 +54,6 @@ try
     }
     state.LastSuccess = checkedAt;
     Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
-    File.WriteAllText(dataPath, JsonSerializer.Serialize(state, options));
     status = new ScanStatus { CheckedAt = checkedAt, Ok = true, Found = scan.SeenIds.Count, DetailErrors = scan.Errors };
 }
 catch (Exception ex)
@@ -61,7 +64,12 @@ catch (Exception ex)
 
 Directory.CreateDirectory(sitePath);
 foreach (var item in state.Listings.Values)
-    item.DaysObserved = Math.Max(1, (DateTimeOffset.UtcNow.Date - DateTimeOffset.Parse(item.FirstSeen).UtcDateTime.Date).Days + 1);
+{
+    var moscow = TimeSpan.FromHours(3);
+    item.DaysObserved = string.IsNullOrWhiteSpace(item.PublishedAt) ? 0 :
+        Math.Max(1, (DateTimeOffset.UtcNow.ToOffset(moscow).Date - DateTimeOffset.Parse(item.PublishedAt).ToOffset(moscow).Date).Days + 1);
+}
+if (status.Ok) File.WriteAllText(dataPath, JsonSerializer.Serialize(state, options));
 File.WriteAllText(Path.Combine(sitePath, "listings.json"), JsonSerializer.Serialize(state.Listings.Values.OrderByDescending(x => x.FirstSeen), options));
 File.WriteAllText(Path.Combine(sitePath, "status.json"), JsonSerializer.Serialize(status, options));
 WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values);
@@ -115,6 +123,7 @@ static Listing Extract(JsonElement offer, string id)
     var address = GetString(offer, "address") ?? "";
     var metro = "";
     int? metroMinutes = null;
+    var metroTransport = "";
     if (offer.TryGetProperty("metro", out var stations) && stations.ValueKind == JsonValueKind.Array)
     {
         var first = stations.EnumerateArray().FirstOrDefault();
@@ -122,6 +131,7 @@ static Listing Extract(JsonElement offer, string id)
         {
             metro = GetString(first, "name") ?? "";
             metroMinutes = GetInt(first, "timeMin");
+            metroTransport = GetString(first, "transport") switch { "walk" => "пешком", "transport" => "на транспорте", _ => "" };
         }
     }
     return new Listing
@@ -130,11 +140,13 @@ static Listing Extract(JsonElement offer, string id)
         Title = $"{kind}, {address}", Kind = kind, Address = address,
         Description = Truncate(GetString(offer, "description") ?? "", 2000),
         AreaM2 = GetDouble(offer, "totalArea"),
+        KitchenAreaM2 = GetDouble(offer, "kitchenArea"),
         Floor = GetInt(offer, "floor") is int floor && GetInt(offer, "floorsCount") is int floors ? $"{floor} из {floors}" : "",
         HouseFloors = GetInt(building, "floorsCount") ?? GetInt(offer, "floorsCount"),
         BuiltYear = GetInt(building, "buildYear"),
         BuildingType = GetString(building, "material") switch { "panel" => "Панельный", "brick" => "Кирпичный", "monolith" => "Монолитный", "block" => "Блочный", var material => material ?? "" },
-        Metro = metro, MetroMinutes = metroMinutes, PriceRub = price
+        Metro = metro, MetroMinutes = metroMinutes, MetroTransport = metroTransport, PriceRub = price,
+        PublishedAt = GetLong(offer, "addedTimestamp") is long added ? DateTimeOffset.FromUnixTimeSeconds(added).ToOffset(TimeSpan.FromHours(3)).ToString("O") : ""
     };
 }
 
@@ -148,7 +160,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
 {
     using var workbook = new XLWorkbook();
     var sheet = workbook.Worksheets.Add("Объявления");
-    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Этаж", "Этажей в доме", "Год постройки", "Тип дома", "Газоснабжение", "Потолки, м", "Метро", "До метро, мин", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Впервые замечено", "Последний раз замечено", "Дней наблюдения", "Обновлено на Циан", "Ссылка"];
+    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Кухня, м²", "Балкон/лоджия", "Этаж", "Этажей в доме", "Год постройки", "Тип дома", "Газоснабжение", "Потолки, м", "Метро", "До метро", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Опубликовано на Циане", "Впервые замечено монитором", "Последний раз замечено", "Дней на Циане", "Обновлено на Циане", "Ссылка"];
     for (var c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).Value = headers[c];
     var row = 2;
     foreach (var x in listings.OrderByDescending(x => x.FirstSeen))
@@ -158,22 +170,25 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
         sheet.Cell(row, 3).Value = x.Kind;
         sheet.Cell(row, 4).Value = x.Address;
         if (x.AreaM2 is double area) sheet.Cell(row, 5).Value = area;
-        sheet.Cell(row, 6).Value = x.Floor;
-        if (x.HouseFloors is int houseFloors) sheet.Cell(row, 7).Value = houseFloors;
-        if (x.BuiltYear is int builtYear) sheet.Cell(row, 8).Value = builtYear;
-        sheet.Cell(row, 9).Value = x.BuildingType;
-        sheet.Cell(row, 10).Value = x.GasSupply;
-        if (x.CeilingHeightM is double ceiling) sheet.Cell(row, 11).Value = ceiling;
-        sheet.Cell(row, 12).Value = x.Metro;
-        if (x.MetroMinutes is int minutes) sheet.Cell(row, 13).Value = minutes;
-        if (x.PriceHistory.FirstOrDefault() is { } firstPrice) sheet.Cell(row, 14).Value = firstPrice.PriceRub;
-        if (x.PriceRub is long price) sheet.Cell(row, 15).Value = price;
-        sheet.Cell(row, 16).Value = x.Status;
-        sheet.Cell(row, 17).Value = x.FirstSeen;
-        sheet.Cell(row, 18).Value = x.LastSeen;
-        sheet.Cell(row, 19).Value = x.DaysObserved;
-        sheet.Cell(row, 20).Value = x.CianUpdated;
-        sheet.Cell(row, 21).Value = x.Url;
+        if (x.KitchenAreaM2 is double kitchen) sheet.Cell(row, 6).Value = kitchen;
+        sheet.Cell(row, 7).Value = x.BalconyLoggia;
+        sheet.Cell(row, 8).Value = x.Floor;
+        if (x.HouseFloors is int houseFloors) sheet.Cell(row, 9).Value = houseFloors;
+        if (x.BuiltYear is int builtYear) sheet.Cell(row, 10).Value = builtYear;
+        sheet.Cell(row, 11).Value = x.BuildingType;
+        sheet.Cell(row, 12).Value = x.GasSupply;
+        if (x.CeilingHeightM is double ceiling) sheet.Cell(row, 13).Value = ceiling;
+        sheet.Cell(row, 14).Value = x.Metro;
+        if (x.MetroMinutes is int minutes) sheet.Cell(row, 15).Value = $"{minutes} мин {x.MetroTransport}".Trim();
+        if (x.PriceHistory.FirstOrDefault() is { } firstPrice) sheet.Cell(row, 16).Value = firstPrice.PriceRub;
+        if (x.PriceRub is long price) sheet.Cell(row, 17).Value = price;
+        sheet.Cell(row, 18).Value = x.Status;
+        sheet.Cell(row, 19).Value = x.PublishedAt;
+        sheet.Cell(row, 20).Value = x.FirstSeen;
+        sheet.Cell(row, 21).Value = x.LastSeen;
+        if (x.DaysObserved > 0) sheet.Cell(row, 22).Value = x.DaysObserved;
+        sheet.Cell(row, 23).Value = x.CianUpdated;
+        sheet.Cell(row, 24).Value = x.Url;
         row++;
     }
     var range = sheet.Range(1, 1, Math.Max(1, row - 1), headers.Length);
@@ -182,7 +197,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
     sheet.Row(1).Style.Font.Bold = true;
     sheet.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
     sheet.Columns(1, headers.Length).AdjustToContents();
-    foreach (var c in new[] { 2, 4, 12, 21 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
+    foreach (var c in new[] { 2, 4, 14, 24 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
     var history = workbook.Worksheets.Add("История цен");
     string[] historyHeaders = ["ID", "Объявление", "Дата наблюдения", "Цена, ₽", "Ссылка"];
     for (var c = 0; c < historyHeaders.Length; c++) history.Cell(1, c + 1).Value = historyHeaders[c];
@@ -219,6 +234,8 @@ public sealed class Listing
     public string Kind { get; set; } = "";
     public string Address { get; set; } = "";
     public double? AreaM2 { get; set; }
+    public double? KitchenAreaM2 { get; set; }
+    public string BalconyLoggia { get; set; } = "";
     public string Floor { get; set; } = "";
     public int? HouseFloors { get; set; }
     public int? BuiltYear { get; set; }
@@ -227,10 +244,12 @@ public sealed class Listing
     public double? CeilingHeightM { get; set; }
     public string Metro { get; set; } = "";
     public int? MetroMinutes { get; set; }
+    public string MetroTransport { get; set; } = "";
     public long? PriceRub { get; set; }
     public string CianUpdated { get; set; } = "";
     public string Description { get; set; } = "";
     public string FirstSeen { get; set; } = "";
+    public string PublishedAt { get; set; } = "";
     public string LastSeen { get; set; } = "";
     public string Status { get; set; } = "";
     public int DaysObserved { get; set; }
