@@ -4,3 +4,5 @@ product-photo-sources.md
 *-example.webp
 product-photo-styles/*.png
 product-*-example*
+**/bin/
+**/obj/
