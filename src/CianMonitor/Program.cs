@@ -85,7 +85,14 @@ static async Task<ScanResult> ScanAsync(string searchUrl)
         await more.First.ClickAsync(new() { Timeout = 3000 });
         await page.WaitForTimeoutAsync(900);
     }
-    if (links.Count == 0) throw new InvalidOperationException("В результатах поиска не найдены ссылки на объявления; список не подтверждён");
+    if (links.Count == 0)
+    {
+        var responseTitle = await page.TitleAsync();
+        var responseBody = await page.Locator("body").InnerTextAsync();
+        var excerpt = Regex.Replace(responseBody, @"\s+", " ").Trim();
+        if (excerpt.Length > 180) excerpt = excerpt[..180];
+        throw new InvalidOperationException($"В результатах поиска не найдены ссылки на объявления. Страница: {page.Url}; заголовок: {responseTitle}; начало текста: {excerpt}");
+    }
     var searchText = await page.Locator("body").InnerTextAsync();
     var expectedMatch = Regex.Match(searchText, @"Найдено\s+(\d[\d\s]*)\s+объявлен", RegexOptions.IgnoreCase);
     if (expectedMatch.Success && int.TryParse(Regex.Replace(expectedMatch.Groups[1].Value, @"\s", ""), out var expected) && links.Count < expected)
