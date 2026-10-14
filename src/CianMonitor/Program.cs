@@ -153,7 +153,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
 {
     using var workbook = new XLWorkbook();
     var sheet = workbook.Worksheets.Add("Объявления");
-    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Этаж", "Метро", "До метро, мин", "Цена, ₽", "Статус", "Впервые замечено", "Последний раз замечено", "Дней наблюдения", "Обновлено на Циан", "Ссылка"];
+    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Этаж", "Метро", "До метро, мин", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Впервые замечено", "Последний раз замечено", "Дней наблюдения", "Обновлено на Циан", "Ссылка"];
     for (var c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).Value = headers[c];
     var row = 2;
     foreach (var x in listings.OrderByDescending(x => x.FirstSeen))
@@ -166,13 +166,14 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
         sheet.Cell(row, 6).Value = x.Floor;
         sheet.Cell(row, 7).Value = x.Metro;
         if (x.MetroMinutes is int minutes) sheet.Cell(row, 8).Value = minutes;
-        if (x.PriceRub is long price) sheet.Cell(row, 9).Value = price;
-        sheet.Cell(row, 10).Value = x.Status;
-        sheet.Cell(row, 11).Value = x.FirstSeen;
-        sheet.Cell(row, 12).Value = x.LastSeen;
-        sheet.Cell(row, 13).Value = x.DaysObserved;
-        sheet.Cell(row, 14).Value = x.CianUpdated;
-        sheet.Cell(row, 15).Value = x.Url;
+        if (x.PriceHistory.FirstOrDefault() is { } firstPrice) sheet.Cell(row, 9).Value = firstPrice.PriceRub;
+        if (x.PriceRub is long price) sheet.Cell(row, 10).Value = price;
+        sheet.Cell(row, 11).Value = x.Status;
+        sheet.Cell(row, 12).Value = x.FirstSeen;
+        sheet.Cell(row, 13).Value = x.LastSeen;
+        sheet.Cell(row, 14).Value = x.DaysObserved;
+        sheet.Cell(row, 15).Value = x.CianUpdated;
+        sheet.Cell(row, 16).Value = x.Url;
         row++;
     }
     var range = sheet.Range(1, 1, Math.Max(1, row - 1), headers.Length);
@@ -181,7 +182,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
     sheet.Row(1).Style.Font.Bold = true;
     sheet.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
     sheet.Columns(1, headers.Length).AdjustToContents();
-    foreach (var c in new[] { 2, 4, 7, 15 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
+    foreach (var c in new[] { 2, 4, 7, 16 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
     workbook.SaveAs(path);
 }
 
