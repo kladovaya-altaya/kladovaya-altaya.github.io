@@ -1,10 +1,9 @@
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using ClosedXML.Excel;
-using Microsoft.Playwright;
 
-const string listingSearch = "https://www.cian.ru/cat.php?deal_type=sale&engine_version=2&id_user=118101459&offer_type=flat";
+const string agentId = "118101459";
 var root = Directory.GetCurrentDirectory();
 var dataPath = Path.Combine(root, "data", "state.json");
 var sitePath = Path.Combine(root, "cian-monitor");
@@ -14,7 +13,7 @@ var checkedAt = DateTimeOffset.UtcNow.ToString("O");
 ScanStatus status;
 try
 {
-    var scan = await ScanAsync(listingSearch);
+    var scan = await ScanAsync(agentId);
     var previousActive = state.Listings.Values.Count(x => x.Status.StartsWith("В профиле", StringComparison.Ordinal));
     if (previousActive >= 2 && scan.SeenIds.Count < previousActive / 2)
         throw new InvalidOperationException($"Список подозрительно сократился: было {previousActive}, найдено {scan.SeenIds.Count}. Статусы сохранены до следующей проверки");
@@ -31,6 +30,7 @@ try
         if (string.IsNullOrWhiteSpace(item.BuildingType)) item.BuildingType = old?.BuildingType ?? "";
         if (string.IsNullOrWhiteSpace(item.GasSupply)) item.GasSupply = old?.GasSupply ?? "";
         item.CeilingHeightM ??= old?.CeilingHeightM;
+        if (string.IsNullOrWhiteSpace(item.CianUpdated)) item.CianUpdated = old?.CianUpdated ?? "";
         if (item.PriceRub is null) item.PriceRub = old?.PriceRub;
         if (item.PriceRub is not null && (item.PriceHistory.Count == 0 || item.PriceHistory[^1].PriceRub != item.PriceRub))
             item.PriceHistory.Add(new PricePoint { At = checkedAt, PriceRub = item.PriceRub.Value });
@@ -67,111 +67,82 @@ File.WriteAllText(Path.Combine(sitePath, "status.json"), JsonSerializer.Serializ
 WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values);
 return status.Ok ? 0 : 1;
 
-static async Task<ScanResult> ScanAsync(string searchUrl)
+static async Task<ScanResult> ScanAsync(string agentId)
 {
-    using var playwright = await Playwright.CreateAsync();
-    await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-    var page = await browser.NewPageAsync(new() { Locale = "ru-RU", ViewportSize = new() { Width = 1365, Height = 900 } });
-    await ReadAsync(page, searchUrl);
-    var links = new Dictionary<string, string>();
-    for (var attempt = 0; attempt < 12; attempt++)
+    var key = Environment.GetEnvironmentVariable("REALTYAPI_KEY");
+    if (string.IsNullOrWhiteSpace(key)) throw new InvalidOperationException("Не задан секрет REALTYAPI_KEY");
+    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
+    client.DefaultRequestHeaders.Add("x-realtyapi-key", key);
+    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    var result = new ScanResult();
+    int? total = null;
+    for (var page = 1; page <= 100; page++)
     {
-        var hrefs = await page.Locator("a[href]").EvaluateAllAsync<string[]>("els => els.map(a => a.href)");
-        foreach (var href in hrefs)
+        var url = $"https://cian.realtyapi.io/agent/offers?id={agentId}&page={page}&resultCount=28";
+        using var response = await client.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"RealtyAPI вернул HTTP {(int)response.StatusCode}; архив не изменён");
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        if (GetString(root, "message") != "Success" || !root.TryGetProperty("searchResults", out var offers) || offers.ValueKind != JsonValueKind.Array)
+            throw new InvalidOperationException("RealtyAPI вернул неожиданный ответ; архив не изменён");
+        total ??= GetInt(root, "total") ?? throw new InvalidOperationException("RealtyAPI не указал общее число объявлений");
+        foreach (var offer in offers.EnumerateArray())
         {
-            if (!Uri.TryCreate(href, UriKind.Absolute, out var uri) || !uri.Host.EndsWith("cian.ru")) continue;
-            var m = Regex.Match(uri.AbsolutePath, @"/(?:sale|rent)/(?:flat|suburban|commercial)/(\d+)/?", RegexOptions.IgnoreCase);
-            if (m.Success) links[m.Groups[1].Value] = uri.GetLeftPart(UriPartial.Path);
+            var id = GetLong(offer, "id")?.ToString(CultureInfo.InvariantCulture);
+            var owner = offer.TryGetProperty("agent", out var agent) ? GetString(agent, "id") : null;
+            if (id is null || owner != agentId || GetString(offer, "dealType") != "sale" || GetString(offer, "offerType") != "flat")
+                throw new InvalidOperationException("В ответе RealtyAPI обнаружено объявление другого агента или типа; архив не изменён");
+            if (!result.SeenIds.Add(id)) throw new InvalidOperationException($"RealtyAPI повторил объявление {id}; архив не изменён");
+            result.Items[id] = Extract(offer, id);
         }
-        await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight)");
-        await page.WaitForTimeoutAsync(1500);
-        var more = page.GetByText(new Regex("Показать ещё|Показать еще|Загрузить ещё", RegexOptions.IgnoreCase));
-        if (await more.CountAsync() == 0 || !await more.First.IsVisibleAsync()) break;
-        await more.First.ClickAsync(new() { Timeout = 3000 });
-        await page.WaitForTimeoutAsync(900);
+        if (root.TryGetProperty("nextPage", out var next) && next.ValueKind == JsonValueKind.False) break;
+        if (page == 100) throw new InvalidOperationException("Превышен лимит страниц RealtyAPI; архив не изменён");
     }
-    if (links.Count == 0)
-    {
-        var responseTitle = await page.TitleAsync();
-        var responseBody = await page.Locator("body").InnerTextAsync();
-        var excerpt = Regex.Replace(responseBody, @"\s+", " ").Trim();
-        if (excerpt.Length > 180) excerpt = excerpt[..180];
-        throw new InvalidOperationException($"В результатах поиска не найдены ссылки на объявления. Страница: {page.Url}; заголовок: {responseTitle}; начало текста: {excerpt}");
-    }
-    var searchText = await page.Locator("body").InnerTextAsync();
-    var expectedMatch = Regex.Match(searchText, @"Найдено\s+(\d[\d\s]*)\s+объявлен", RegexOptions.IgnoreCase);
-    if (expectedMatch.Success && int.TryParse(Regex.Replace(expectedMatch.Groups[1].Value, @"\s", ""), out var expected) && links.Count < expected)
-        throw new InvalidOperationException($"Список загружен не полностью: Циан сообщает {expected} объявлений, найдено ссылок {links.Count}. Статусы сохранены до следующей проверки");
-    var result = new ScanResult { SeenIds = links.Keys.ToHashSet() };
-    foreach (var (id, url) in links)
-    {
-        try
-        {
-            var body = await ReadAsync(page, url);
-            var title = await page.TitleAsync();
-            var description = await page.Locator("meta[name='description']").GetAttributeAsync("content") ?? "";
-            result.Items[id] = Extract(url, title, body, description);
-        }
-        catch (Exception ex) { result.Errors.Add($"{id}: {ex.Message}"); }
-    }
+    if (result.SeenIds.Count != total)
+        throw new InvalidOperationException($"RealtyAPI сообщил {total} объявлений, получено {result.SeenIds.Count}; архив не изменён");
     return result;
 }
 
-static async Task<string> ReadAsync(IPage page, string url)
+static Listing Extract(JsonElement offer, string id)
 {
-    await page.GotoAsync(url, new() { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 45000 });
-    await page.WaitForTimeoutAsync(2500);
-    var title = await page.TitleAsync();
-    if (Regex.IsMatch(page.Url + " " + title, "showcaptcha|вы не робот|captcha", RegexOptions.IgnoreCase))
-        throw new InvalidOperationException("Циан запросил капчу");
-    var body = await page.Locator("body").InnerTextAsync(new() { Timeout = 10000 });
-    if (string.IsNullOrWhiteSpace(body)) throw new InvalidOperationException("Пустая страница Циан");
-    if (body.Contains("Обнаружен подозрительный трафик", StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException("Циан ограничил доступ для сервера GitHub Actions. Архив сохранён; автоматическое обновление не выполнено");
-    return body;
-}
-
-static Listing Extract(string url, string title, string body, string description)
-{
-    var area = Find(@"Общая площадь\s*([\d,.]+)\s*м²", body);
-    if (area == "") area = Find(@"([\d,.]+)\s*м²", title);
-    var price = Find(@"([\d\s\u00a0]+)\s*₽", body);
-    var lines = body.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-    string metro = "";
+    var building = offer.TryGetProperty("building", out var b) ? b : default;
+    var price = offer.TryGetProperty("price", out var p) ? GetLong(p, "value") : null;
+    if (price is null || price <= 0) throw new InvalidOperationException($"У объявления {id} нет действительной цены");
+    var rooms = GetInt(offer, "rooms");
+    var kind = rooms is > 0 ? $"{rooms}-комн. квартира" : "Квартира";
+    if (GetString(offer, "flatType") == "studio") kind = "Студия";
+    var address = GetString(offer, "address") ?? "";
+    var metro = "";
     int? metroMinutes = null;
-    for (var i = 1; i < lines.Length; i++)
+    if (offer.TryGetProperty("metro", out var stations) && stations.ValueKind == JsonValueKind.Array)
     {
-        var m = Regex.Match(lines[i], @"^(\d+)\s*мин\.?(?:\s|$)", RegexOptions.IgnoreCase);
-        if (!m.Success) continue;
-        if (lines[i - 1].Length > 45 || Regex.IsMatch(lines[i - 1], @"\d+\s*км|МКАД", RegexOptions.IgnoreCase)) continue;
-        metro = lines[i - 1];
-        metroMinutes = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
-        break;
+        var first = stations.EnumerateArray().FirstOrDefault();
+        if (first.ValueKind == JsonValueKind.Object)
+        {
+            metro = GetString(first, "name") ?? "";
+            metroMinutes = GetInt(first, "timeMin");
+        }
     }
     return new Listing
     {
-        Url = url, Title = title, Description = description.Length > 2000 ? description[..2000] : description,
-        Kind = Find(@"(студия|\d+-комн\.\s*квартира|апартаменты)", title),
-        Address = Find(@"((?:Москва|Санкт-Петербург|Московская область)[^\n]{0,150})", body),
-        AreaM2 = ParseDouble(area), Floor = Find(@"Этаж\s*(\d+\s*из\s*\d+)", body),
-        HouseFloors = ParseInt(Find(@"Этаж\s*\d+\s*из\s*(\d+)", body)),
-        BuiltYear = ParseInt(Find(@"Год постройки\s*(\d{4})", body)),
-        BuildingType = Find(@"Тип дома\s*\n\s*([^\n]+)", body),
-        GasSupply = Find(@"Газоснабжение\s*\n\s*([^\n]+)", body),
-        CeilingHeightM = ParseDouble(Find(@"Высота потолков\s*\n\s*([\d,.]+)\s*м", body)),
-        Metro = metro, MetroMinutes = metroMinutes, PriceRub = ParseLong(price),
-        CianUpdated = Find(@"Обновлено:\s*([^\n]+)", body)
+        Url = $"https://www.cian.ru/sale/flat/{id}/",
+        Title = $"{kind}, {address}", Kind = kind, Address = address,
+        Description = Truncate(GetString(offer, "description") ?? "", 2000),
+        AreaM2 = GetDouble(offer, "totalArea"),
+        Floor = GetInt(offer, "floor") is int floor && GetInt(offer, "floorsCount") is int floors ? $"{floor} из {floors}" : "",
+        HouseFloors = GetInt(building, "floorsCount") ?? GetInt(offer, "floorsCount"),
+        BuiltYear = GetInt(building, "buildYear"),
+        BuildingType = GetString(building, "material") switch { "panel" => "Панельный", "brick" => "Кирпичный", "monolith" => "Монолитный", "block" => "Блочный", var material => material ?? "" },
+        Metro = metro, MetroMinutes = metroMinutes, PriceRub = price
     };
 }
 
-static string Find(string pattern, string text)
-{
-    var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
-    return match.Success ? match.Groups[1].Value.Trim() : "";
-}
-static double? ParseDouble(string value) => double.TryParse(value.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
-static int? ParseInt(string value) => int.TryParse(value, out var parsed) ? parsed : null;
-static long? ParseLong(string value) => long.TryParse(Regex.Replace(value, @"\s", ""), out var parsed) ? parsed : null;
+static string Truncate(string value, int limit) => value.Length <= limit ? value : value[..limit];
+static string? GetString(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.ValueKind != JsonValueKind.Null ? value.ToString() : null;
+static long? GetLong(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.TryGetInt64(out var number) ? number : null;
+static int? GetInt(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.TryGetInt32(out var number) ? number : null;
+static double? GetDouble(JsonElement item, string key) => item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value) && value.TryGetDouble(out var number) ? number : null;
 
 static void WriteExcel(string path, IEnumerable<Listing> listings)
 {
