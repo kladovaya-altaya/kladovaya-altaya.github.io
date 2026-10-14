@@ -16,23 +16,45 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      - name: Check two-day cadence
+        id: cadence
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          today=$(date -u +%Y-%m-%d)
+          anchor=$(date -u -d '2026-10-14' +%s)
+          current=$(date -u -d "$today" +%s)
+          days_since_anchor=$(( (current - anchor) / 86400 ))
+          if (( days_since_anchor % 2 == 0 )); then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.cadence.outputs.run == 'true'
       - uses: actions/setup-dotnet@v4
+        if: steps.cadence.outputs.run == 'true'
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build src/CianMonitor/CianMonitor.csproj -c Release
+      - if: steps.cadence.outputs.run == 'true'
+        run: dotnet build src/CianMonitor/CianMonitor.csproj -c Release
       - name: Read Cian and build site
+        if: steps.cadence.outputs.run == 'true'
         id: collect
         continue-on-error: true
         env:
           REALTYAPI_KEY: ${{ secrets.REALTYAPI_KEY }}
         run: dotnet run --project src/CianMonitor/CianMonitor.csproj -c Release --no-build
       - name: Save data and status
+        if: steps.cadence.outputs.run == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/state.json cian-monitor/status.json cian-monitor/listings.json cian-monitor/cian-monitor.xlsx
           git diff --cached --quiet || (git commit -m "Update Cian observations" && git push)
       - name: Fail job on collection error
-        if: steps.collect.outcome == 'failure'
+        if: steps.cadence.outputs.run == 'true' && steps.collect.outcome == 'failure'
         run: exit 1
