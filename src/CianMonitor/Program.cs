@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 
 const string agentId = "118101459";
@@ -25,7 +26,9 @@ try
         item.LastSeen = checkedAt;
         item.Status = "В профиле";
         item.PriceHistory = old?.PriceHistory ?? [];
-        if (string.IsNullOrWhiteSpace(item.PublishedAt)) item.PublishedAt = old?.PublishedAt ?? "";
+        // A confirmed first publication date must not be replaced by a later refresh.
+        if (!string.IsNullOrWhiteSpace(old?.PublishedAt)) item.PublishedAt = old.PublishedAt;
+        if (string.IsNullOrWhiteSpace(item.PublishedAt)) item.PublishedAt = await TryReadCianPublicationAsync(id);
         if (string.IsNullOrWhiteSpace(item.MetroTransport)) item.MetroTransport = old?.MetroTransport ?? "";
         item.KitchenAreaM2 ??= old?.KitchenAreaM2;
         if (string.IsNullOrWhiteSpace(item.BalconyLoggia)) item.BalconyLoggia = old?.BalconyLoggia ?? "";
@@ -146,8 +149,27 @@ static Listing Extract(JsonElement offer, string id)
         BuiltYear = GetInt(building, "buildYear"),
         BuildingType = GetString(building, "material") switch { "panel" => "Панельный", "brick" => "Кирпичный", "monolith" => "Монолитный", "block" => "Блочный", var material => material ?? "" },
         Metro = metro, MetroMinutes = metroMinutes, MetroTransport = metroTransport, PriceRub = price,
-        PublishedAt = GetLong(offer, "addedTimestamp") is long added ? DateTimeOffset.FromUnixTimeSeconds(added).ToOffset(TimeSpan.FromHours(3)).ToString("O") : ""
+        PublishedAt = GetLong(offer, "publicationDate") is long published ? DateTimeOffset.FromUnixTimeSeconds(published).ToOffset(TimeSpan.FromHours(3)).ToString("O") : "",
+        CianUpdated = GetLong(offer, "addedTimestamp") is long updated ? DateTimeOffset.FromUnixTimeSeconds(updated).ToOffset(TimeSpan.FromHours(3)).ToString("O") : ""
     };
+}
+
+static async Task<string> TryReadCianPublicationAsync(string id)
+{
+    try
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; CianMonitor/1.0)");
+        var html = await client.GetStringAsync($"https://spb.cian.ru/sale/flat/{id}/");
+        var match = Regex.Match(html, "\"publicationDate\":(?<date>\\d+),\"creationDate\":\"");
+        if (match.Success && long.TryParse(match.Groups["date"].Value, out var timestamp))
+            return DateTimeOffset.FromUnixTimeSeconds(timestamp).ToOffset(TimeSpan.FromHours(3)).ToString("O");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Исходная дата объявления {id} недоступна: {ex.GetType().Name}");
+    }
+    return "";
 }
 
 static string Truncate(string value, int limit) => value.Length <= limit ? value : value[..limit];
@@ -160,7 +182,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
 {
     using var workbook = new XLWorkbook();
     var sheet = workbook.Worksheets.Add("Объявления");
-    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Кухня, м²", "Балкон/лоджия", "Этаж", "Этажей в доме", "Год постройки", "Тип дома", "Газоснабжение", "Потолки, м", "Метро", "До метро", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Опубликовано на Циане", "Впервые замечено монитором", "Последний раз замечено", "Дней на Циане", "Обновлено на Циане", "Ссылка"];
+    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Кухня, м²", "Балкон/лоджия", "Этаж", "Этажей в доме", "Год постройки", "Тип дома", "Газоснабжение", "Потолки, м", "Метро", "До метро", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Опубликовано на Циане", "Впервые замечено монитором", "Последний раз замечено", "Дней на Циане", "Дата addedTimestamp из API (не первая публикация)", "Ссылка"];
     for (var c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).Value = headers[c];
     var row = 2;
     foreach (var x in listings.OrderByDescending(x => x.FirstSeen))
