@@ -252,7 +252,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings, IEnumerable<M
     history.Column(5).Width = 55;
     var manual = manualListings.ToList();
     var old = workbook.Worksheets.Add("Старый архив");
-    old.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — из заметок пользователя, не сверены с Цианом. Исчезновение объявления не подтверждает продажу.";
+    old.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — сведения о продаже со слов пользователя, не сверены с Цианом. Дата исчезновения не равна дате сделки.";
     old.Range(1, 1, 1, 21).Merge();
     old.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF0D6");
     old.Cell(1, 1).Style.Font.Bold = true;
@@ -294,7 +294,7 @@ static void WriteExcel(string path, IEnumerable<Listing> listings, IEnumerable<M
     old.Column(19).Width = 30;
 
     var oldHistory = workbook.Worksheets.Add("Цены старого архива");
-    oldHistory.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — цены и события со слов пользователя, даты изменения могут быть неизвестны.";
+    oldHistory.Cell(1, 1).Value = "СТАРЫЕ И НЕТОЧНЫЕ ДАННЫЕ — цены, события и сведения о продаже со слов пользователя.";
     oldHistory.Range(1, 1, 1, 6).Merge();
     oldHistory.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF0D6");
     oldHistory.Cell(1, 1).Style.Font.Bold = true;
