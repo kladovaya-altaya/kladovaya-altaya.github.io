@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using Microsoft.Playwright;
 
-const string profile = "https://www.cian.ru/agents/118101459/";
+const string listingSearch = "https://www.cian.ru/cat.php?deal_type=sale&engine_version=2&id_user=118101459&offer_type=flat";
 var root = Directory.GetCurrentDirectory();
 var dataPath = Path.Combine(root, "data", "state.json");
 var sitePath = Path.Combine(root, "cian-monitor");
@@ -14,9 +14,9 @@ var checkedAt = DateTimeOffset.UtcNow.ToString("O");
 ScanStatus status;
 try
 {
-    var scan = await ScanAsync(profile);
+    var scan = await ScanAsync(listingSearch);
     var previousActive = state.Listings.Values.Count(x => x.Status.StartsWith("В профиле", StringComparison.Ordinal));
-    if (previousActive >= 6 && scan.SeenIds.Count < previousActive / 2)
+    if (previousActive >= 2 && scan.SeenIds.Count < previousActive / 2)
         throw new InvalidOperationException($"Список подозрительно сократился: было {previousActive}, найдено {scan.SeenIds.Count}. Статусы сохранены до следующей проверки");
     foreach (var (id, item) in scan.Items)
     {
@@ -62,12 +62,12 @@ File.WriteAllText(Path.Combine(sitePath, "status.json"), JsonSerializer.Serializ
 WriteExcel(Path.Combine(sitePath, "cian-monitor.xlsx"), state.Listings.Values);
 return status.Ok ? 0 : 1;
 
-static async Task<ScanResult> ScanAsync(string profileUrl)
+static async Task<ScanResult> ScanAsync(string searchUrl)
 {
     using var playwright = await Playwright.CreateAsync();
     await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
     var page = await browser.NewPageAsync(new() { Locale = "ru-RU", ViewportSize = new() { Width = 1365, Height = 900 } });
-    await ReadAsync(page, profileUrl);
+    await ReadAsync(page, searchUrl);
     var links = new Dictionary<string, string>();
     for (var attempt = 0; attempt < 12; attempt++)
     {
@@ -79,13 +79,17 @@ static async Task<ScanResult> ScanAsync(string profileUrl)
             if (m.Success) links[m.Groups[1].Value] = uri.GetLeftPart(UriPartial.Path);
         }
         await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight)");
-        await page.WaitForTimeoutAsync(900);
+        await page.WaitForTimeoutAsync(1500);
         var more = page.GetByText(new Regex("Показать ещё|Показать еще|Загрузить ещё", RegexOptions.IgnoreCase));
         if (await more.CountAsync() == 0 || !await more.First.IsVisibleAsync()) break;
         await more.First.ClickAsync(new() { Timeout = 3000 });
         await page.WaitForTimeoutAsync(900);
     }
-    if (links.Count == 0) throw new InvalidOperationException("В профиле не найдены ссылки на объявления; список не подтверждён");
+    if (links.Count == 0) throw new InvalidOperationException("В результатах поиска не найдены ссылки на объявления; список не подтверждён");
+    var searchText = await page.Locator("body").InnerTextAsync();
+    var expectedMatch = Regex.Match(searchText, @"Найдено\s+(\d[\d\s]*)\s+объявлен", RegexOptions.IgnoreCase);
+    if (expectedMatch.Success && int.TryParse(Regex.Replace(expectedMatch.Groups[1].Value, @"\s", ""), out var expected) && links.Count < expected)
+        throw new InvalidOperationException($"Список загружен не полностью: Циан сообщает {expected} объявлений, найдено ссылок {links.Count}. Статусы сохранены до следующей проверки");
     var result = new ScanResult { SeenIds = links.Keys.ToHashSet() };
     foreach (var (id, url) in links)
     {

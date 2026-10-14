@@ -1,6 +1,7 @@
 # Монитор объявлений Циан
 
 Отдельный раздел сайта: `https://kladovaya-altaya.github.io/cian-monitor/`.
+Источник — список квартир агента: `https://www.cian.ru/cat.php?deal_type=sale&engine_version=2&id_user=118101459&offer_type=flat`. Монитор сверяет количество найденных ссылок с числом результатов поиска и не меняет статусы при неполной загрузке.
 На главной странице «Кладовой Алтая» ссылки на него нет. В HTML раздела указан `noindex`, но это **не защита доступа**: репозиторий и GitHub Pages публичны, поэтому любой обладатель прямой ссылки сможет открыть страницу и данные.
 
 GitHub Actions запускает `.github/workflows/monitor.yml` ежедневно в 09:17 по Москве. Для первого запуска: **Actions → Monitor Cian → Run workflow**. Workflow должен иметь право `contents: write`, чтобы сохранять `data/state.json`, таблицу, статус и Excel-файл в ветку `main`. GitHub Pages продолжает публиковаться из `main / (root)`; переключать его на публикацию через Actions не нужно.
