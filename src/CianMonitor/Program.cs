@@ -26,6 +26,11 @@ try
         item.LastSeen = checkedAt;
         item.Status = "В профиле";
         item.PriceHistory = old?.PriceHistory ?? [];
+        item.HouseFloors ??= old?.HouseFloors;
+        item.BuiltYear ??= old?.BuiltYear;
+        if (string.IsNullOrWhiteSpace(item.BuildingType)) item.BuildingType = old?.BuildingType ?? "";
+        if (string.IsNullOrWhiteSpace(item.GasSupply)) item.GasSupply = old?.GasSupply ?? "";
+        item.CeilingHeightM ??= old?.CeilingHeightM;
         if (item.PriceRub is null) item.PriceRub = old?.PriceRub;
         if (item.PriceRub is not null && (item.PriceHistory.Count == 0 || item.PriceHistory[^1].PriceRub != item.PriceRub))
             item.PriceHistory.Add(new PricePoint { At = checkedAt, PriceRub = item.PriceRub.Value });
@@ -121,6 +126,8 @@ static async Task<string> ReadAsync(IPage page, string url)
         throw new InvalidOperationException("Циан запросил капчу");
     var body = await page.Locator("body").InnerTextAsync(new() { Timeout = 10000 });
     if (string.IsNullOrWhiteSpace(body)) throw new InvalidOperationException("Пустая страница Циан");
+    if (body.Contains("Обнаружен подозрительный трафик", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Циан ограничил доступ для сервера GitHub Actions. Архив сохранён; автоматическое обновление не выполнено");
     return body;
 }
 
@@ -147,6 +154,11 @@ static Listing Extract(string url, string title, string body, string description
         Kind = Find(@"(студия|\d+-комн\.\s*квартира|апартаменты)", title),
         Address = Find(@"((?:Москва|Санкт-Петербург|Московская область)[^\n]{0,150})", body),
         AreaM2 = ParseDouble(area), Floor = Find(@"Этаж\s*(\d+\s*из\s*\d+)", body),
+        HouseFloors = ParseInt(Find(@"Этаж\s*\d+\s*из\s*(\d+)", body)),
+        BuiltYear = ParseInt(Find(@"Год постройки\s*(\d{4})", body)),
+        BuildingType = Find(@"Тип дома\s*\n\s*([^\n]+)", body),
+        GasSupply = Find(@"Газоснабжение\s*\n\s*([^\n]+)", body),
+        CeilingHeightM = ParseDouble(Find(@"Высота потолков\s*\n\s*([\d,.]+)\s*м", body)),
         Metro = metro, MetroMinutes = metroMinutes, PriceRub = ParseLong(price),
         CianUpdated = Find(@"Обновлено:\s*([^\n]+)", body)
     };
@@ -158,13 +170,14 @@ static string Find(string pattern, string text)
     return match.Success ? match.Groups[1].Value.Trim() : "";
 }
 static double? ParseDouble(string value) => double.TryParse(value.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+static int? ParseInt(string value) => int.TryParse(value, out var parsed) ? parsed : null;
 static long? ParseLong(string value) => long.TryParse(Regex.Replace(value, @"\s", ""), out var parsed) ? parsed : null;
 
 static void WriteExcel(string path, IEnumerable<Listing> listings)
 {
     using var workbook = new XLWorkbook();
     var sheet = workbook.Worksheets.Add("Объявления");
-    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Этаж", "Метро", "До метро, мин", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Впервые замечено", "Последний раз замечено", "Дней наблюдения", "Обновлено на Циан", "Ссылка"];
+    string[] headers = ["ID", "Объявление", "Тип", "Адрес", "Площадь, м²", "Этаж", "Этажей в доме", "Год постройки", "Тип дома", "Газоснабжение", "Потолки, м", "Метро", "До метро, мин", "Первая цена, ₽", "Цена сейчас, ₽", "Статус", "Впервые замечено", "Последний раз замечено", "Дней наблюдения", "Обновлено на Циан", "Ссылка"];
     for (var c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).Value = headers[c];
     var row = 2;
     foreach (var x in listings.OrderByDescending(x => x.FirstSeen))
@@ -175,16 +188,21 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
         sheet.Cell(row, 4).Value = x.Address;
         if (x.AreaM2 is double area) sheet.Cell(row, 5).Value = area;
         sheet.Cell(row, 6).Value = x.Floor;
-        sheet.Cell(row, 7).Value = x.Metro;
-        if (x.MetroMinutes is int minutes) sheet.Cell(row, 8).Value = minutes;
-        if (x.PriceHistory.FirstOrDefault() is { } firstPrice) sheet.Cell(row, 9).Value = firstPrice.PriceRub;
-        if (x.PriceRub is long price) sheet.Cell(row, 10).Value = price;
-        sheet.Cell(row, 11).Value = x.Status;
-        sheet.Cell(row, 12).Value = x.FirstSeen;
-        sheet.Cell(row, 13).Value = x.LastSeen;
-        sheet.Cell(row, 14).Value = x.DaysObserved;
-        sheet.Cell(row, 15).Value = x.CianUpdated;
-        sheet.Cell(row, 16).Value = x.Url;
+        if (x.HouseFloors is int houseFloors) sheet.Cell(row, 7).Value = houseFloors;
+        if (x.BuiltYear is int builtYear) sheet.Cell(row, 8).Value = builtYear;
+        sheet.Cell(row, 9).Value = x.BuildingType;
+        sheet.Cell(row, 10).Value = x.GasSupply;
+        if (x.CeilingHeightM is double ceiling) sheet.Cell(row, 11).Value = ceiling;
+        sheet.Cell(row, 12).Value = x.Metro;
+        if (x.MetroMinutes is int minutes) sheet.Cell(row, 13).Value = minutes;
+        if (x.PriceHistory.FirstOrDefault() is { } firstPrice) sheet.Cell(row, 14).Value = firstPrice.PriceRub;
+        if (x.PriceRub is long price) sheet.Cell(row, 15).Value = price;
+        sheet.Cell(row, 16).Value = x.Status;
+        sheet.Cell(row, 17).Value = x.FirstSeen;
+        sheet.Cell(row, 18).Value = x.LastSeen;
+        sheet.Cell(row, 19).Value = x.DaysObserved;
+        sheet.Cell(row, 20).Value = x.CianUpdated;
+        sheet.Cell(row, 21).Value = x.Url;
         row++;
     }
     var range = sheet.Range(1, 1, Math.Max(1, row - 1), headers.Length);
@@ -193,7 +211,27 @@ static void WriteExcel(string path, IEnumerable<Listing> listings)
     sheet.Row(1).Style.Font.Bold = true;
     sheet.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
     sheet.Columns(1, headers.Length).AdjustToContents();
-    foreach (var c in new[] { 2, 4, 7, 16 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
+    foreach (var c in new[] { 2, 4, 12, 21 }) if (sheet.Column(c).Width > 55) sheet.Column(c).Width = 55;
+    var history = workbook.Worksheets.Add("История цен");
+    string[] historyHeaders = ["ID", "Объявление", "Дата наблюдения", "Цена, ₽", "Ссылка"];
+    for (var c = 0; c < historyHeaders.Length; c++) history.Cell(1, c + 1).Value = historyHeaders[c];
+    var historyRow = 2;
+    foreach (var x in listings)
+        foreach (var point in x.PriceHistory.OrderBy(p => p.At))
+        {
+            history.Cell(historyRow, 1).Value = x.Id;
+            history.Cell(historyRow, 2).Value = x.Title;
+            history.Cell(historyRow, 3).Value = point.At;
+            history.Cell(historyRow, 4).Value = point.PriceRub;
+            history.Cell(historyRow, 5).Value = x.Url;
+            historyRow++;
+        }
+    history.Range(1, 1, Math.Max(1, historyRow - 1), historyHeaders.Length).SetAutoFilter();
+    history.SheetView.FreezeRows(1);
+    history.Row(1).Style.Font.Bold = true;
+    history.Row(1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EAF1FA");
+    history.Columns(1, historyHeaders.Length).AdjustToContents();
+    if (history.Column(2).Width > 55) history.Column(2).Width = 55;
     workbook.SaveAs(path);
 }
 
@@ -211,6 +249,11 @@ public sealed class Listing
     public string Address { get; set; } = "";
     public double? AreaM2 { get; set; }
     public string Floor { get; set; } = "";
+    public int? HouseFloors { get; set; }
+    public int? BuiltYear { get; set; }
+    public string BuildingType { get; set; } = "";
+    public string GasSupply { get; set; } = "";
+    public double? CeilingHeightM { get; set; }
     public string Metro { get; set; } = "";
     public int? MetroMinutes { get; set; }
     public long? PriceRub { get; set; }
