@@ -57,7 +57,7 @@
     "published_at": "2026-09-21T09:12:08.0000000\u002B03:00",
     "last_seen": "2026-10-20T15:24:02.1835444\u002B00:00",
     "status": "\u0412 \u043F\u0440\u043E\u0444\u0438\u043B\u0435",
-    "days_observed": 30,
+    "days_observed": 32,
     "price_history": [
       {
         "at": "2026-10-14T15:24:18Z",
@@ -90,7 +90,7 @@
     "published_at": "2026-10-13T19:40:19.0000000\u002B03:00",
     "last_seen": "2026-10-20T15:24:02.1835444\u002B00:00",
     "status": "\u0412 \u043F\u0440\u043E\u0444\u0438\u043B\u0435",
-    "days_observed": 8,
+    "days_observed": 10,
     "price_history": [
       {
         "at": "2026-10-14T15:24:18Z",
@@ -123,7 +123,7 @@
     "published_at": "2026-05-24T11:43:17.0000000\u002B03:00",
     "last_seen": "2026-10-20T15:24:02.1835444\u002B00:00",
     "status": "\u0412 \u043F\u0440\u043E\u0444\u0438\u043B\u0435",
-    "days_observed": 150,
+    "days_observed": 152,
     "price_history": [
       {
         "at": "2026-10-14T15:24:18Z",
@@ -160,7 +160,7 @@
     "published_at": "2026-08-12T11:55:30.0000000\u002B03:00",
     "last_seen": "2026-10-20T15:24:02.1835444\u002B00:00",
     "status": "\u0412 \u043F\u0440\u043E\u0444\u0438\u043B\u0435",
-    "days_observed": 70,
+    "days_observed": 72,
     "price_history": [
       {
         "at": "2026-10-14T15:24:18Z",
@@ -197,7 +197,7 @@
     "published_at": "2026-10-07T08:38:25.0000000\u002B03:00",
     "last_seen": "2026-10-16T15:20:38.3153475\u002B00:00",
     "status": "\u041D\u0435\u0442 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0435",
-    "days_observed": 14,
+    "days_observed": 16,
     "price_history": [
       {
         "at": "2026-10-14T15:24:18Z",
