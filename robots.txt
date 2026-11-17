@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kladovaya-altaya.github.io/sitemap.xml
