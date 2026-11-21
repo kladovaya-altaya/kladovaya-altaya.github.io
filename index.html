@@ -63,7 +63,9 @@ main{padding-bottom:60px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 .card{min-width:0;background:#fffefa;border:1px solid #e7e1d5;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 7px 20px #2c41300d;transition:transform .2s,box-shadow .2s}
 .card:hover{transform:translateY(-5px);box-shadow:0 16px 32px #2c413024}
-.art{position:relative;height:310px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.art{position:relative;height:310px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;color:inherit;text-decoration:none;cursor:pointer}
+.art:hover .product-photo{transform:scale(1.03)}
+.product-photo{transition:transform .25s}
 .art:before,.art:after{content:"";position:absolute;border-radius:50%}
 .art:before{width:230px;height:230px;right:-65px;top:-95px;background:#ffffff38}
 .art:after{width:160px;height:160px;left:-70px;bottom:-100px;border:28px solid #ffffff55}
@@ -358,8 +360,9 @@ function element(tag,className,text){const node=document.createElement(tag);if(c
 function makeChip(label,value,total){const button=element("button","chip",label);button.type="button";button.setAttribute("aria-pressed",String(active===value));if(total!==undefined)button.append(element("small","",String(total)));button.addEventListener("click",()=>{active=value;updateChips();render()});return button}
 function updateChips(){chips.replaceChildren(makeChip("Все товары","",products.length));for(const c of categories)chips.append(makeChip(c,c,products.filter(p=>p.category===c).length))}
 function card(p){
-  const item=element("article","card"),tone=styles[p.category]||styles["Другие товары"],art=element("div","art");
+  const item=element("article","card"),tone=styles[p.category]||styles["Другие товары"],art=element(p.details?"a":"div","art");
   art.style.setProperty("--bg",tone.bg);art.style.setProperty("--fg",tone.fg);
+  if(p.details){art.href=p.details.url;art.setAttribute("aria-label",`Открыть карточку товара: ${p.title}`);}
   if(p.image){
     art.classList.add("has-photo");
     const photo=element("img","product-photo");photo.src=p.image;photo.alt=`Изображение товара: ${p.title}`;photo.loading="lazy";photo.decoding="async";
