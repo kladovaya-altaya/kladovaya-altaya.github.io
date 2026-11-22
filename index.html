@@ -130,7 +130,9 @@ main{padding-bottom:60px}
 .store-note strong{display:block;font:normal 27px/1.08 Georgia,serif;margin-top:13px}
 .store-note p{font-size:13px;line-height:1.5;color:#d7e8d8;margin:0}
 .store-photo.secondary figcaption{font-size:13px}
-.store-photo.sharypovo-card .photo-stage img{object-position:20% 100%;transform:scale(1);transform-origin:center center}
+.store-photo.sharypovo-card .photo-stage{padding:0}
+.store-photo.sharypovo-card .photo-stage:before{display:none}
+.store-photo.sharypovo-card .photo-stage img{object-position:20% 100%;transform:scale(1.35);transform-origin:center bottom;border-radius:0;box-shadow:none}
 @media(max-width:1000px){.store-grid{grid-template-columns:1fr;max-width:720px}
 .store-photo.secondary{width:min(100%,440px);justify-self:center}
 }
